@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CameraViewfinder } from '@/components/CameraViewfinder';
 import { Settings } from '@/components/Settings';
 import { useGameLogic } from '@/hooks/useGameLogic';
@@ -8,7 +6,7 @@ import { processImageWithBanner, downloadBlob } from '@/lib/imageProcessor';
 import { Settings as SettingsIcon, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function Home() {
+export default function App() {
   const {
     currentPrompt,
     timeLeft,

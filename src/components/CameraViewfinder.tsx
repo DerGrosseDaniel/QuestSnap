@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 interface CameraViewfinderProps {
   onCapture: (blob: Blob) => void;
@@ -10,7 +10,7 @@ interface CameraViewfinderProps {
   name?: string;
 }
 
-export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({ onCapture, prompt, timer, name }) => {
+export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({ onCapture, prompt, timer }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);

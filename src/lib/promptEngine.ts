@@ -1,9 +1,11 @@
 import seedrandom from 'seedrandom';
-import { DEFAULT_PROMPTS } from './prompts';
 
-const CORS_PROXIES = [
-  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+const CORS_PROXIES: ((url: string) => string)[] = [
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://cors-anywhere.herokuapp.com/${url}`,
+  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
 
 export function getRandomPromptIndex(length: number, seed?: string): number {
@@ -25,73 +27,159 @@ export function getPromptForIndex(index: number, prompts: string[], seed?: strin
   }
 }
 
+function isValidUrl(input: string): boolean {
+  try {
+    const url = new URL(input);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function isDpasteUrl(url: string): boolean {
+  return /^https?:\/\/(www\.)?dpaste\.com\//i.test(url);
+}
+
+function isGistUrl(url: string): boolean {
+  return /^https?:\/\/(gist\.github\.com|gist\.githubusercontent\.com)\//i.test(url);
+}
+
+function isPastebinUrl(url: string): boolean {
+  return /^https?:\/\/(www\.)?pastebin\.com\//i.test(url);
+}
+
 function extractPastebinId(input: string): string | null {
   const trimmed = input.trim();
-  
-  // Pastebin IDs are exactly 8 alphanumeric characters
+
   const patterns = [
     /pastebin\.com\/raw\/([a-zA-Z0-9]{8})(?:\?|$|\/)/,
     /pastebin\.com\/([a-zA-Z0-9]{8})(?:\?|$|\/)/,
     /^([a-zA-Z0-9]{8})$/,
   ];
-  
+
   for (const pattern of patterns) {
     const match = trimmed.match(pattern);
     if (match) return match[1];
   }
-  
+
   return null;
+}
+
+function extractDpasteId(url: string): string | null {
+  const match = url.match(/dpaste\.com\/([a-zA-Z0-9]+)/);
+  return match ? match[1] : null;
+}
+
+function resolveRawUrl(input: string): string | null {
+  const trimmed = input.trim();
+
+  if (isGistUrl(trimmed)) {
+    if (trimmed.includes('/raw/') || trimmed.includes('gist.githubusercontent.com')) {
+      return trimmed;
+    }
+    const match = trimmed.match(/gist\.github\.com\/([^/]+)\/([a-f0-9]+)/i);
+    if (match) {
+      return `https://gist.githubusercontent.com/${match[1]}/${match[2]}/raw`;
+    }
+    return trimmed;
+  }
+
+  if (isDpasteUrl(trimmed)) {
+    if (trimmed.endsWith('.txt')) {
+      return trimmed;
+    }
+    const id = extractDpasteId(trimmed);
+    if (id) {
+      return `https://dpaste.com/${id}.txt`;
+    }
+    return trimmed;
+  }
+
+  if (isPastebinUrl(trimmed)) {
+    const id = extractPastebinId(trimmed);
+    if (id) {
+      return `https://pastebin.com/raw/${id}`;
+    }
+    return trimmed;
+  }
+
+  if (isValidUrl(trimmed)) {
+    return trimmed;
+  }
+
+  const pastebinId = extractPastebinId(trimmed);
+  if (pastebinId) {
+    return `https://pastebin.com/raw/${pastebinId}`;
+  }
+
+  return null;
+}
+
+async function tryFetch(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
+
+    const text = await response.text();
+
+    if (/<[a-z][\s\S]*>/i.test(text)) return null;
+
+    return text;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadCustomPromptsFromInput(input: string): Promise<string[] | null> {
   if (!input || !input.trim()) return null;
-  
-  const pastebinId = extractPastebinId(input);
-  if (!pastebinId) return null;
-  
-  const targetUrl = `https://pastebin.com/raw/${pastebinId}`;
-  
-  // Try direct fetch first, then fall back to CORS proxies
-  const fetchUrls = [targetUrl, ...CORS_PROXIES.map(proxy => proxy(targetUrl))];
-  
-  for (const fetchUrl of fetchUrls) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      const response = await fetch(fetchUrl, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) continue;
-      
-      const text = await response.text();
-      
-      // Reject if response contains HTML tags (Pastebin raw should be plain text only)
-      if (/<[a-z][\s\S]*>/i.test(text)) continue;
-      
+
+  const rawUrl = resolveRawUrl(input);
+  if (!rawUrl) return null;
+
+  const needsProxy = isPastebinUrl(rawUrl);
+
+  if (needsProxy) {
+    const fetchUrls = [rawUrl, ...CORS_PROXIES.map(proxy => proxy(rawUrl))];
+
+    for (const fetchUrl of fetchUrls) {
+      const text = await tryFetch(fetchUrl);
+      if (text) {
+        const prompts = text
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+
+        if (prompts.length > 0) {
+          return prompts;
+        }
+      }
+    }
+  } else {
+    const text = await tryFetch(rawUrl);
+    if (text) {
       const prompts = text
         .split('\n')
         .map(line => line.trim())
         .filter(line => line.length > 0);
-      
+
       if (prompts.length > 0) {
         return prompts;
       }
-    } catch (e) {
-      // Try next URL
-      continue;
     }
   }
-  
-  console.warn('Failed to load custom prompts from Pastebin');
+
+  console.warn('Failed to load custom prompts');
   return null;
 }
 
 export function getStoredCustomPrompts(): string[] | null {
   if (typeof window === 'undefined') return null;
-  
+
   const saved = localStorage.getItem('photoquest_customPrompts');
   if (saved) {
     try {
@@ -103,7 +191,7 @@ export function getStoredCustomPrompts(): string[] | null {
       return null;
     }
   }
-  
+
   return null;
 }
 

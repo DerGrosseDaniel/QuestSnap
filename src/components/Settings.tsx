@@ -122,19 +122,34 @@ export const Settings: React.FC<SettingsProps> = ({
               <span className="text-white font-medium">Timer:</span> Countdown in seconds before the app moves to the next prompt.
             </p>
             <p>
-              <span className="text-white font-medium">Custom prompts:</span> Load a custom prompt list from Pastebin. Create a new paste at{' '}
-              <span className="text-orange-500">pastebin.com</span> with one prompt per line, then paste the URL or ID here.
+              <span className="text-white font-medium">Custom prompts:</span> Load a custom prompt list from a hosted text file. Paste the URL or ID below. Supported services:
             </p>
+            <ul className="list-disc list-inside space-y-1 ml-1">
+              <li>
+                <span className="text-green-400 font-medium">GitHub Gist (recommended):</span>{' '}
+                Create a Gist at <span className="text-orange-500">gist.github.com</span> with one prompt per line. Paste the Gist URL or raw URL here. Permanent &amp; reliable with full CORS support.
+              </li>
+              <li>
+                <span className="text-green-400 font-medium">dpaste.com:</span>{' '}
+                No account needed. Paste at <span className="text-orange-500">dpaste.com</span>, then paste the URL here (add <span className="text-orange-500">.txt</span> to the end for best results).
+              </li>
+              <li>
+                <span className="text-yellow-400 font-medium">Pastebin (unreliable):</span>{' '}
+                Works inconsistently due to CORS restrictions and frequent blocking. Only use as fallback.
+              </li>
+            </ul>
             <p>
-              <span className="text-white font-medium">Share via link:</span> Add a custom prompt list to the URL so it loads automatically. Use the <span className="text-orange-500">?promptlist=</span> parameter with either a Pastebin ID or full raw URL, e.g.:
+              <span className="text-white font-medium">Share via link:</span> Add a custom prompt list to the URL so it loads automatically. Use the <span className="text-orange-500">?promptlist=</span> parameter with any supported URL or ID:
             </p>
             <p className="text-zinc-500 text-xs break-all font-mono">
               your-site.com/?promptlist=tsA2ZAwt
               <br />
-              your-site.com/?promptlist=https://pastebin.com/raw/tsA2ZAwt
+              your-site.com/?promptlist=https://gist.github.com/user/abc123
+              <br />
+              your-site.com/?promptlist=https://dpaste.com/ABC123
             </p>
             <p className="text-zinc-500 text-xs italic">
-              Example paste content:
+              Example paste content (one prompt per line):
               <br />
               Take a photo of something blue
               <br />
@@ -208,7 +223,7 @@ export const Settings: React.FC<SettingsProps> = ({
               type="text"
               value={pastebinInput}
               onChange={handlePastebinInputChange}
-              placeholder="Pastebin URL or ID (e.g., Hf1eABQd)"
+              placeholder="Gist, dpaste, Pastebin URL or ID"
               className={`flex-1 bg-zinc-900 border rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${
                 pastebinError ? 'border-red-500' : 'border-white/10'
               }`}
