@@ -1,5 +1,7 @@
 # QuestSnap
 
+> **[Try it now at https://useless.blue/QuestSnap](https://useless.blue/QuestSnap)**
+
 A minimalist photo challenge app. Displays a random or custom photo prompt with a countdown timer. Capture photos that are instantly saved to your device with burned-in text (prompt, name, timestamp).
 
 ## Quick Start
