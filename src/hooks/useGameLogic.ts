@@ -5,6 +5,7 @@ import {
   loadCustomPromptsFromInput,
   saveCustomPrompts,
   clearStoredCustomPrompts,
+  getStoredCustomPrompts,
 } from '@/lib/promptEngine';
 
 const DEFAULT_TIMER_DURATION = 60; // seconds
@@ -61,6 +62,13 @@ export function useGameLogic() {
     if (urlPromptlist) {
       loadCustomPromptsFromInput(urlPromptlist).then(prompts => {
         if (prompts) {
+          const existing = getStoredCustomPrompts();
+          const isSameList = existing && JSON.stringify(existing) === JSON.stringify(prompts);
+
+          if (isSameList) {
+            return;
+          }
+
           saveCustomPrompts(prompts);
           setCustomPromptsState(prompts);
           setCustomIndex(0);
