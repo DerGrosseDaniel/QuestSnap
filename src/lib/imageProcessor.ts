@@ -34,7 +34,68 @@ export async function processImageWithBanner(imageBlob: Blob, prompt: string, na
         return;
       }
 
-      const bannerHeight = Math.max(img.height * 0.12, 80);
+      const padding = 20;
+      const maxTextWidth = img.width - 2 * padding;
+
+      const timestamp = new Date().toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      // Step 1: Count prompt lines and find font size where everything fits
+      const words = prompt.split(' ');
+      
+      let bestFontSize = 8;
+
+      for (let size = 28; size >= 8; size--) {
+        ctx.font = `bold ${size}px "Courier New", monospace`;
+        
+        // Count how many lines the prompt needs
+        let lines = 1;
+        let currentLine = '';
+        
+        for (const word of words) {
+          const testLine = currentLine ? currentLine + ' ' + word : word;
+          const testWidth = ctx.measureText(testLine).width;
+          
+          if (testWidth > maxTextWidth && currentLine) {
+            lines++;
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        
+        if (lines <= 3) {
+          bestFontSize = size;
+          break;
+        }
+      }
+
+      // Step 2: Calculate actual banner height based on line count
+      ctx.font = `bold ${bestFontSize}px "Courier New", monospace`;
+      const lineHeight = bestFontSize * 1.25;
+      const metaFontSize = Math.max(Math.floor(bestFontSize * 0.75), 10);
+      
+      let promptLineCount = 1;
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        if (ctx.measureText(testLine).width > maxTextWidth && currentLine) {
+          promptLineCount++;
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+
+      const bannerHeight = Math.max(
+        promptLineCount * lineHeight + (metaFontSize * 1.25) + 2 * padding,
+        80
+      );
+
       canvas.width = img.width;
       canvas.height = img.height + bannerHeight;
 
@@ -44,77 +105,35 @@ export async function processImageWithBanner(imageBlob: Blob, prompt: string, na
 
       ctx.fillStyle = '#ff5f00';
       ctx.textBaseline = 'top';
-
-      const padding = 20;
-      const maxTextWidth = canvas.width - 2 * padding;
-
-      const timestamp = new Date().toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
-
-      // Use much smaller font sizes to keep text compact
-      let fontSize = Math.min(bannerHeight * 0.18, 40);
-      const minFontSize = 8;
-
-      for (let size = fontSize; size >= minFontSize; size--) {
-        ctx.font = `bold ${size}px "Courier New", monospace`;
-
-        const nameWidth = name ? ctx.measureText(name).width : 0;
-        const tsWidth = ctx.measureText(timestamp).width;
-        const gapWidth = ctx.measureText('  ').width;
-
-        if (nameWidth + gapWidth + tsWidth <= maxTextWidth) {
-          fontSize = size;
-          break;
-        }
-
-        if (size === minFontSize) {
-          fontSize = minFontSize;
-        }
-      }
-
-      ctx.font = `bold ${fontSize}px "Courier New", monospace`;
-      const lineHeight = fontSize * 1.25;
+      ctx.font = `bold ${bestFontSize}px "Courier New", monospace`;
 
       // Draw prompt with wrapping
       const promptTop = img.height + padding;
-      const words = prompt.split(' ');
-      let line = '';
       let lineY = promptTop;
-      const maxLines = Math.floor((bannerHeight - 2 * padding) / lineHeight);
-      let linesDrawn = 0;
-
+      currentLine = '';
+      
       for (const word of words) {
-        const testLine = line ? line + ' ' + word : word;
-        const testWidth = ctx.measureText(testLine).width;
-
-        if (testWidth > maxTextWidth && line) {
-          ctx.fillText(line, padding, lineY);
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        if (ctx.measureText(testLine).width > maxTextWidth && currentLine) {
+          ctx.fillText(currentLine, padding, lineY);
           lineY += lineHeight;
-          line = word;
-          linesDrawn++;
-          if (linesDrawn >= maxLines - 1) break;
+          currentLine = word;
         } else {
-          line = testLine;
+          currentLine = testLine;
         }
       }
-
-      if (line && linesDrawn < maxLines) {
-        ctx.fillText(line, padding, lineY);
+      
+      if (currentLine) {
+        ctx.fillText(currentLine, padding, lineY);
         lineY += lineHeight;
       }
 
-      // Draw name (left) and timestamp (right) on the next line
-      const metaY = Math.min(lineY, img.height + bannerHeight - lineHeight - padding);
-
-      if (name) {
-        ctx.fillText(name, padding, metaY);
-      }
-
-      const tsWidth = ctx.measureText(timestamp).width;
-      ctx.fillText(timestamp, canvas.width - padding - tsWidth, metaY);
+      // Draw name and timestamp right-aligned as "name, HH:MM"
+      ctx.font = `bold ${metaFontSize}px "Courier New", monospace`;
+      
+      const metaText = name ? `${name}, ${timestamp}` : timestamp;
+      const metaWidth = ctx.measureText(metaText).width;
+      ctx.fillText(metaText, canvas.width - padding - metaWidth, lineY);
 
       canvas.toBlob(
         (blob) => {
