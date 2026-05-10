@@ -76,6 +76,16 @@ export function useGameLogic() {
         }
       });
     }
+
+    const urlTimer = urlParams.get('timer');
+    if (urlTimer) {
+      const parsed = parseInt(urlTimer, 10);
+      if (parsed >= 1 && parsed <= 3600) {
+        setTimerDuration(parsed);
+        setTimeLeft(parsed);
+        localStorage.setItem('photoquest_timerDuration', String(parsed));
+      }
+    }
   }, []);
 
   // Pick a random prompt for default mode

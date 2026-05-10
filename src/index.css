@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'PermanentMarker';
+  src: url('/fonts/PermanentMarker-Regular.ttf') format('truetype');
+}
+
 body {
   background: #000000;
   color: #ffffff;
@@ -17,4 +22,8 @@ body {
 
 * {
   touch-action: manipulation;
+}
+
+.polaroid-prompt {
+  font-family: 'PermanentMarker', cursive;
 }

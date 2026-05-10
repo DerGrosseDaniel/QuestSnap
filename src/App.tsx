@@ -3,7 +3,7 @@ import { CameraViewfinder } from '@/components/CameraViewfinder';
 import { Settings } from '@/components/Settings';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { processImageWithBanner, downloadBlob } from '@/lib/imageProcessor';
-import { Settings as SettingsIcon, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function App() {
@@ -32,8 +32,8 @@ export default function App() {
       const { blob: processedBlob, filename } = await processImageWithBanner(
         blob,
         currentPrompt,
-        name,
         isCustomMode ? customIndex : 0,
+        name,
       );
       downloadBlob(processedBlob, filename);
 
@@ -69,6 +69,8 @@ export default function App() {
           prompt={currentPrompt}
           timer={timeLeft}
           onCapture={handleCapture}
+          onOpenSettings={() => setView('settings')}
+          name={name}
         />
 
         {isProcessing && (
@@ -77,25 +79,7 @@ export default function App() {
             <p className="text-xl font-bold tracking-widest uppercase">Processing...</p>
           </div>
         )}
-
-        {!name && (
-          <div className="absolute bottom-20 left-0 right-0 flex justify-center pointer-events-none">
-            <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white/80 text-sm">
-              Set your name in Settings for personalized photos
-            </div>
-          </div>
-        )}
       </div>
-
-      <nav className="h-20 bg-black border-t border-white/5 flex items-center justify-around px-6">
-        <button
-          onClick={() => setView('settings')}
-          className="flex flex-col items-center gap-1 text-zinc-500 hover:text-white transition-colors"
-        >
-          <SettingsIcon size={24} />
-          <span className="text-[10px] uppercase tracking-tighter">Settings</span>
-        </button>
-      </nav>
 
       {view === 'settings' && (
         <Settings

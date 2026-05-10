@@ -147,6 +147,12 @@ export const Settings: React.FC<SettingsProps> = ({
               your-site.com/?promptlist=https://gist.github.com/user/abc123
               <br />
               your-site.com/?promptlist=https://dpaste.com/ABC123
+              <br />
+              your-site.com/?timer=120
+            </p>
+            <p>
+              <span className="text-white font-medium">Timer via URL:</span>{' '}
+              Use <span className="text-orange-500">?timer=</span> to set the countdown in seconds (1-3600). Overrides the saved timer value.
             </p>
             <p className="text-zinc-500 text-xs italic">
               Example paste content (one prompt per line):
