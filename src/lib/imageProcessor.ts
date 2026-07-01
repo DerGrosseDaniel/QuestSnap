@@ -1,4 +1,4 @@
-async function generateFilename(prompt: string, index: number): Promise<string> {
+async function generateFilename(prompt: string, index: number, name: string): Promise<string> {
   const sanitizeForFilename = (str: string) =>
     str
       .toLowerCase()
@@ -8,12 +8,15 @@ async function generateFilename(prompt: string, index: number): Promise<string> 
       .trim();
 
   let cleanedPrompt = sanitizeForFilename(prompt);
+  let cleanedName = sanitizeForFilename(name);
 
   if (cleanedPrompt.length > 100) {
     cleanedPrompt = cleanedPrompt.substring(0, 100);
   }
 
-  return `QuestSnap-${String(index + 1).padStart(3, '0')}-${cleanedPrompt}.jpg`;
+  const namePart = cleanedName ? `-${cleanedName}` : '';
+
+  return `QuestSnap-${String(index + 1).padStart(3, '0')}${namePart}-${cleanedPrompt}.jpg`;
 }
 
 function centerCropToSquare(
@@ -122,7 +125,7 @@ export async function processImageWithBanner(
   index: number,
   name: string,
 ): Promise<{ blob: Blob; filename: string }> {
-  const filename = await generateFilename(prompt, index);
+  const filename = await generateFilename(prompt, index, name);
 
   await document.fonts.ready;
 
